@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubectl/pkg/scheme"
 	"kusionstack.io/operating/apis/apps/v1alpha1"
+	"kusionstack.io/operating/pkg/controllers/poddeletion"
 	"kusionstack.io/operating/pkg/utils/feature"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -32,7 +33,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	appsv1alpha1 "kusionstack.io/operating/apis/apps/v1alpha1"
 )
 
 func TestGraceDelete(t *testing.T) {
@@ -63,10 +63,7 @@ func TestGraceDelete(t *testing.T) {
 			oldPod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
-					Name:      "test",
-					Labels: map[string]string{
-						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey): "true",
-					},
+					Name:      "test2",
 				},
 			},
 			reqOperation: admissionv1.Delete,
@@ -76,48 +73,23 @@ func TestGraceDelete(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
-				},
-			},
-			oldPod: corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-					Name:      "test1",
 					Labels: map[string]string{
 						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey): "true",
-					},
-				},
-				Spec: corev1.PodSpec{
-					ReadinessGates: []corev1.PodReadinessGate{{ConditionType: v1alpha1.ReadinessGatePodServiceReady}},
-				},
-			},
-			keyWords:     "not found",
-			reqOperation: admissionv1.Delete,
-		},
-		{
-			fakePod: corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-					Name:      "test2",
-					Labels: map[string]string{
-						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey): "true",
-						"operating.podopslifecycle.kusionstack.io/pod-delete": "1704865098763959176",
 					},
 				},
 			},
 			oldPod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
-					Name:      "test2",
+					Name:      "test",
 					Labels: map[string]string{
 						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey): "true",
 					},
-				},
-				Spec: corev1.PodSpec{
-					ReadinessGates: []corev1.PodReadinessGate{{ConditionType: v1alpha1.ReadinessGatePodServiceReady}},
 				},
 			},
 			expectedLabels: map[string]string{
-				appsv1alpha1.PodDeletionIndicationLabelKey: "true",
+				fmt.Sprintf("%s/%s", v1alpha1.PodOperatingLabelPrefix, poddeletion.OpsLifecycleAdapter.GetID()):     "testvalue",
+				fmt.Sprintf("%s/%s", v1alpha1.PodOperationTypeLabelPrefix, poddeletion.OpsLifecycleAdapter.GetID()): "testvalue",
 			},
 			keyWords:     "podOpsLifecycle denied",
 			reqOperation: admissionv1.Delete,
@@ -126,49 +98,23 @@ func TestGraceDelete(t *testing.T) {
 			fakePod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
-					Name:      "test2",
+					Name:      "test",
 					Labels: map[string]string{
-						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey): "true",
+						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey):                                         "true",
+						fmt.Sprintf("%s/%s", v1alpha1.PodOperateLabelPrefix, poddeletion.OpsLifecycleAdapter.GetID()): "true",
 					},
 				},
 			},
 			oldPod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
-					Name:      "test2",
+					Name:      "test",
 					Labels: map[string]string{
-						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey): "true",
-					},
-					Finalizers: []string{"prot.podopslifecycle.kusionstack.io/finalizer1,prot.podopslifecycle.kusionstack.io/finalizer2"},
-				},
-				Spec: corev1.PodSpec{
-					ReadinessGates: []corev1.PodReadinessGate{{ConditionType: v1alpha1.ReadinessGatePodServiceReady}},
-				},
-			},
-			expectedLabels: map[string]string{
-				appsv1alpha1.PodDeletionIndicationLabelKey: "true",
-			},
-			keyWords:     "podOpsLifecycle denied",
-			reqOperation: admissionv1.Delete,
-		},
-		{
-			fakePod: corev1.Pod{},
-			oldPod: corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "default",
-					Name:      "test3",
-					Labels: map[string]string{
-						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey):      "true",
-						"operating.podopslifecycle.kusionstack.io/pod-delete":      "1704865098763959176",
-						"operation-type.podopslifecycle.kusionstack.io/pod-delete": "1704865098763959336",
-						"operate.podopslifecycle.kusionstack.io/pod-delete":        "1704865212856080006",
+						fmt.Sprintf(v1alpha1.ControlledByKusionStackLabelKey):                                         "true",
+						fmt.Sprintf("%s/%s", v1alpha1.PodOperateLabelPrefix, poddeletion.OpsLifecycleAdapter.GetID()): "true",
 					},
 				},
-				Spec: corev1.PodSpec{
-					ReadinessGates: []corev1.PodReadinessGate{{ConditionType: v1alpha1.ReadinessGatePodServiceReady}},
-				},
 			},
-
 			reqOperation: admissionv1.Delete,
 		},
 	}

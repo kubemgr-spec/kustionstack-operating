@@ -29,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 	k8scorev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	corevalidation "k8s.io/kubernetes/pkg/apis/core/validation"
-	"kusionstack.io/operating/pkg/webhook/server/generic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -39,10 +38,6 @@ import (
 	"kusionstack.io/operating/pkg/utils/mixin"
 	"kusionstack.io/operating/pkg/webhook/server/generic/utils"
 )
-
-func init() {
-	generic.ValidatingTypeHandlerMap["CollaSet"] = NewValidatingHandler()
-}
 
 type ValidatingHandler struct {
 	*mixin.WebhookHandlerMixin
@@ -121,17 +116,11 @@ func (h *ValidatingHandler) validateUpdateStrategy(cls *appsv1alpha1.CollaSet, f
 	case appsv1alpha1.CollaSetRecreatePodUpdateStrategyType,
 		appsv1alpha1.CollaSetInPlaceOnlyPodUpdateStrategyType,
 		appsv1alpha1.CollaSetInPlaceIfPossiblePodUpdateStrategyType:
-
-	case appsv1alpha1.CollaSetReplaceUpdatePodUpdateStrategyType:
-		if cls.Spec.VolumeClaimTemplates != nil {
-			allErrs = append(allErrs, field.Forbidden(fSpec.Child("updateStrategy", "podUpdatePolicy"), "updateStrategy.podUpdatePolicy ReplaceUpdate is not supported to claim Spec.VolumeClaimTemplates"))
-		}
 	default:
 		allErrs = append(allErrs, field.NotSupported(fSpec.Child("updateStrategy", "podUpdatePolicy"),
 			cls.Spec.UpdateStrategy.PodUpdatePolicy, []string{string(appsv1alpha1.CollaSetRecreatePodUpdateStrategyType),
 				string(appsv1alpha1.CollaSetInPlaceIfPossiblePodUpdateStrategyType),
-				string(appsv1alpha1.CollaSetInPlaceOnlyPodUpdateStrategyType),
-				string(appsv1alpha1.CollaSetReplaceUpdatePodUpdateStrategyType)}))
+				string(appsv1alpha1.CollaSetInPlaceOnlyPodUpdateStrategyType)}))
 	}
 
 	if cls.Spec.UpdateStrategy.RollingUpdate != nil && cls.Spec.UpdateStrategy.RollingUpdate.ByPartition != nil &&

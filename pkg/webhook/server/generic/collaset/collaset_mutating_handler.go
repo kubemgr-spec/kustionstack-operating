@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	admissionv1 "k8s.io/api/admission/v1"
-	"kusionstack.io/operating/pkg/webhook/server/generic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -31,10 +30,6 @@ import (
 	commonutils "kusionstack.io/operating/pkg/utils"
 	"kusionstack.io/operating/pkg/utils/mixin"
 )
-
-func init() {
-	generic.MutatingTypeHandlerMap["CollaSet"] = NewMutatingHandler()
-}
 
 type MutatingHandler struct {
 	*mixin.WebhookHandlerMixin

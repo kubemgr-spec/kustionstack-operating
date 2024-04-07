@@ -30,6 +30,6 @@ const (
 
 // PodDecoration Annotation
 const (
-	// AnnotationPodDecorationRevision struct: { groupName: {name: pdName, revision: currentRevision}, groupName: {} }
-	AnnotationPodDecorationRevision = "poddecoration.kusionstack.io/revisions"
+	// AnnotationResourceDecorationRevision struct: { groupName: {name: pdName, revision: currentRevision}, groupName: {} }
+	AnnotationResourceDecorationRevision = "cafe.sofastack.io/pod-decoration-revision"
 )

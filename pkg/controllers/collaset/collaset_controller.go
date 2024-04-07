@@ -70,7 +70,7 @@ func NewReconciler(mgr ctrl.Manager) reconcile.Reconciler {
 
 	return &CollaSetReconciler{
 		ReconcilerMixin: mixin,
-		revisionManager: revision.NewRevisionManager(mixin.Client, mixin.Scheme, NewRevisionOwnerAdapter(podcontrol.NewRealPodControl(mixin.Client, mixin.Scheme))),
+		revisionManager: revision.NewRevisionManager(mixin.Client, mixin.Scheme, &revisionOwnerAdapter{}),
 		syncControl:     synccontrol.NewRealSyncControl(mixin.Client, mixin.Logger, podcontrol.NewRealPodControl(mixin.Client, mixin.Scheme), mixin.Recorder),
 	}
 }
@@ -136,7 +136,7 @@ func (r *CollaSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	} else if !satisfied {
 		logger.Info("CollaSet is not satisfied to reconcile")
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{}, nil
 	}
 
 	if instance.DeletionTimestamp != nil {

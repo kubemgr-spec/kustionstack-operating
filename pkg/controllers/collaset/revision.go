@@ -19,11 +19,9 @@ package collaset
 import (
 	"encoding/json"
 
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	appsv1alpha1 "kusionstack.io/operating/apis/apps/v1alpha1"
-	"kusionstack.io/operating/pkg/controllers/collaset/podcontrol"
 	"kusionstack.io/operating/pkg/controllers/utils/revision"
 )
 
@@ -55,14 +53,9 @@ func getCollaSetPatch(cls *appsv1alpha1.CollaSet) ([]byte, error) {
 	return patch, err
 }
 
-func NewRevisionOwnerAdapter(podControl podcontrol.Interface) revision.OwnerAdapter {
-	return &revisionOwnerAdapter{
-		podControl: podControl,
-	}
-}
+var _ revision.OwnerAdapter = &revisionOwnerAdapter{}
 
 type revisionOwnerAdapter struct {
-	podControl podcontrol.Interface
 }
 
 func (roa *revisionOwnerAdapter) GetSelector(obj metav1.Object) *metav1.LabelSelector {
@@ -90,22 +83,6 @@ func (roa *revisionOwnerAdapter) GetCurrentRevision(obj metav1.Object) string {
 	return ips.Status.CurrentRevision
 }
 
-func (roa *revisionOwnerAdapter) IsInUsed(obj metav1.Object, revision string) bool {
-	ips, _ := obj.(*appsv1alpha1.CollaSet)
-
-	if ips.Status.UpdatedRevision == revision || ips.Status.CurrentRevision == revision {
-		return true
-	}
-
-	pods, _ := roa.podControl.GetFilteredPods(ips.Spec.Selector, ips)
-	for _, pod := range pods {
-		if pod.Labels != nil {
-			currentRevisionName, exist := pod.Labels[appsv1.ControllerRevisionHashLabelKey]
-			if exist && currentRevisionName == revision {
-				return true
-			}
-		}
-	}
-
+func (roa *revisionOwnerAdapter) IsInUsed(_ metav1.Object, _ string) bool {
 	return false
 }

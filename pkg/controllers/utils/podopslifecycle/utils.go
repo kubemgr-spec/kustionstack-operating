@@ -39,7 +39,7 @@ func IsDuringOps(adapter LifecycleAdapter, obj client.Object) bool {
 }
 
 // Begin is used for an CRD Operator to begin a lifecycle
-func Begin(c client.Client, adapter LifecycleAdapter, obj client.Object, updateFunc ...UpdateFunc) (updated bool, err error) {
+func Begin(c client.Client, adapter LifecycleAdapter, obj client.Object) (updated bool, err error) {
 	if obj.GetLabels() == nil {
 		obj.SetLabels(map[string]string{})
 	}
@@ -72,14 +72,14 @@ func Begin(c client.Client, adapter LifecycleAdapter, obj client.Object, updateF
 		}
 	}
 
-	updated, err = DefaultUpdateAll(obj, append(updateFunc, adapter.WhenBegin)...)
+	updated, err = adapter.WhenBegin(obj)
 	if err != nil {
 		return
 	}
 
 	if needUpdate || updated {
 		err = c.Update(context.Background(), obj)
-		return err == nil, err
+		return true, err
 	}
 
 	return false, nil
@@ -113,7 +113,7 @@ func AllowOps(adapter LifecycleAdapter, operationDelaySeconds int32, obj client.
 }
 
 // Finish is used for an CRD Operator to finish a lifecycle
-func Finish(c client.Client, adapter LifecycleAdapter, obj client.Object, updateFunc ...UpdateFunc) (updated bool, err error) {
+func Finish(c client.Client, adapter LifecycleAdapter, obj client.Object) (updated bool, err error) {
 	operatingID, hasID := checkOperatingID(adapter, obj)
 	operationType, hasType := checkOperationType(adapter, obj)
 
@@ -128,16 +128,18 @@ func Finish(c client.Client, adapter LifecycleAdapter, obj client.Object, update
 		deleteOperationType(adapter, obj)
 	}
 
-	updated, err = DefaultUpdateAll(obj, append(updateFunc, adapter.WhenFinish)...)
+	updated, err = adapter.WhenFinish(obj)
 	if err != nil {
 		return
 	}
 	if needUpdate || updated {
 		err = c.Update(context.Background(), obj)
-		return err == nil, err
+		if err != nil {
+			return
+		}
 	}
 
-	return false, err
+	return needUpdate, err
 }
 
 func checkOperatingID(adapter LifecycleAdapter, obj client.Object) (val string, ok bool) {
@@ -204,15 +206,4 @@ func queryByOperationType(adapter LifecycleAdapter, obj client.Object) sets.Stri
 	}
 
 	return res
-}
-
-func DefaultUpdateAll(pod client.Object, updateFunc ...UpdateFunc) (updated bool, err error) {
-	for _, f := range updateFunc {
-		ok, updateErr := f(pod)
-		if updateErr != nil {
-			return updated, updateErr
-		}
-		updated = updated || ok
-	}
-	return updated, nil
 }

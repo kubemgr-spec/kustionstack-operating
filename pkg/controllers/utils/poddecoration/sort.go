@@ -35,8 +35,11 @@ func (br PodDecorations) Swap(i, j int) {
 }
 
 func lessPD(a, b *appsv1alpha1.PodDecoration) bool {
-	if *a.Spec.Weight == *b.Spec.Weight {
+	if *a.Spec.InjectStrategy.Weight == *b.Spec.InjectStrategy.Weight {
+		if a.Spec.InjectStrategy.Group != b.Spec.InjectStrategy.Group {
+			return a.Spec.InjectStrategy.Group < b.Spec.InjectStrategy.Group
+		}
 		return a.Name < b.Name
 	}
-	return *a.Spec.Weight > *b.Spec.Weight
+	return *a.Spec.InjectStrategy.Weight > *b.Spec.InjectStrategy.Weight
 }
