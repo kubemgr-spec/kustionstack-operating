@@ -18,7 +18,6 @@ package gracedelete
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -117,7 +116,10 @@ func (gd *GraceDelete) Validating(ctx context.Context, c client.Client, oldPod, 
 			finalizers = append(finalizers, f)
 		}
 	}
-	return fmt.Errorf("podOpsLifecycle拒绝删除请求，因为相关资源和Finalizers还没有被处理。等待删除Finalizers: %v", finalizers)
+
+	return nil
+
+	//return fmt.Errorf("podOpsLifecycle拒绝删除请求，因为相关资源和Finalizers还没有被处理。等待删除Finalizers: %v", finalizers)
 }
 
 func (gd *GraceDelete) Mutating(ctx context.Context, c client.Client, oldPod, newPod *corev1.Pod, operation admissionv1.Operation) error {
