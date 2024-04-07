@@ -74,15 +74,28 @@ func (gd *GraceDelete) Validating(ctx context.Context, c client.Client, oldPod, 
 		}
 	}
 
+	var errMsg string
+
 	// if Pod is allow to operate, delete it
 	if _, allowed := podopslifecycle.AllowOps(poddeletion.OpsLifecycleAdapter, 0, pod); !allowed {
 		var finalizers []string
 		for _, f := range pod.Finalizers {
 			if strings.HasPrefix(f, v1alpha1.PodOperationProtectionFinalizerPrefix) {
+
+				if strings.Index(f, "app-monitor") != -1 {
+					errMsg = "应用监控目前有用户正在在请求当前服务"
+					break
+				} else if strings.Index(f, "nacos-traffic") != -1 {
+					errMsg = "Nacos请求下线失败"
+					break
+				}
 				finalizers = append(finalizers, f)
 			}
 		}
-		return fmt.Errorf("podOpsLifecycle denied delete request, since related resources and finalizers have not been processed. Waiting for removing finalizers: %v", finalizers)
+
+		//return fmt.Errorf("podOpsLifecycle denied delete request, since related resources and finalizers have not been processed. Waiting for removing finalizers: %v", finalizers)
+
+		return fmt.Errorf("pod删除失败,%v", errMsg)
 	}
 	return nil
 }
