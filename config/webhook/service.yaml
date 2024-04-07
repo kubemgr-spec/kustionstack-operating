@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-manager
+  namespace: kusionstack-system
+spec:
+  ports:
+    - port: 443
+      targetPort: 9443
+  selector:
+    control-plane: controller-manager

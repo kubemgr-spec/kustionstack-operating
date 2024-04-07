@@ -1,0 +1,18 @@
+apiVersion: apps.kusionstack.io/v1alpha1
+kind: PodTransitionRule
+metadata:
+  labels:
+    app.kubernetes.io/name: podtransitionrule
+    app.kubernetes.io/instance: podtransitionrule-sample
+    app.kubernetes.io/part-of: kusionstack
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kusionstack
+  name: podtransitionrule-sample
+spec:
+  rules:
+  - availablePolicy:
+      maxUnavailableValue: 50%
+    name: maxUnavailable
+  selector:
+    matchLabels:
+      app: foo
