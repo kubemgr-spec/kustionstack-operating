@@ -23,12 +23,17 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/klog/v2"
+	"kusionstack.io/operating/pkg/webhook/server/generic"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	appsv1alpha1 "kusionstack.io/operating/apis/apps/v1alpha1"
 	"kusionstack.io/operating/pkg/utils/mixin"
 )
+
+func init() {
+	generic.MutatingTypeHandlerMap["PodDecoration"] = NewMutatingHandler()
+}
 
 var _ inject.Client = &MutatingHandler{}
 var _ admission.DecoderInjector = &MutatingHandler{}
@@ -61,9 +66,9 @@ func (h *MutatingHandler) Handle(ctx context.Context, req admission.Request) (re
 }
 
 func SetDefaultPodDecoration(pd *appsv1alpha1.PodDecoration) {
-	if pd.Spec.InjectStrategy.Weight == nil {
+	if pd.Spec.Weight == nil {
 		var int32Zero int32
-		pd.Spec.InjectStrategy.Weight = &int32Zero
+		pd.Spec.Weight = &int32Zero
 	}
 	for i := range pd.Spec.Template.Metadata {
 		if pd.Spec.Template.Metadata[i].PatchPolicy == "" {
