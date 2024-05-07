@@ -14,17 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package webhookAdapters
+package webhook
 
 import (
-	"context"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"kusionstack.io/operating/pkg/webhook/alibaba_cloud_slb"
 )
 
-var WebhookAdapters []WebhookAdapter
-
-// WebhookAdapter should be implemented by adapters which follow PodOpsLifecycle
-type WebhookAdapter interface {
-	GetEmployersByEmployee(ctx context.Context, employee client.Object, client client.Client) ([]client.Object, error)
+func init() {
+	// AddToManagerFuncs is a list of functions to create webhook servers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, alibaba_cloud_slb.Add)
 }

@@ -22,6 +22,13 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"kusionstack.io/operating/pkg/webhook/server/generic/pod/gracedelete"
+	"kusionstack.io/operating/pkg/webhook/server/generic/pod/opslifecycle"
+)
+
+var (
+	webhooks []AdmissionWebhook
 )
 
 type AdmissionWebhook interface {
@@ -30,7 +37,10 @@ type AdmissionWebhook interface {
 	Validating(ctx context.Context, c client.Client, oldPod, newPod *corev1.Pod, operation admissionv1.Operation) error
 }
 
-var webhooks []AdmissionWebhook
+func init() {
+	webhooks = append(webhooks, opslifecycle.New())
+	webhooks = append(webhooks, gracedelete.New())
+}
 
 func RegisterAdmissionWebhook(webhook AdmissionWebhook) {
 	webhooks = append(webhooks, webhook)

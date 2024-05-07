@@ -34,17 +34,12 @@ import (
 	"kusionstack.io/operating/pkg/features"
 	"kusionstack.io/operating/pkg/utils"
 	"kusionstack.io/operating/pkg/utils/feature"
-	"kusionstack.io/operating/pkg/webhook/server/generic/pod"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	updatePodDeletionIndicationLabelInterval = 30 * 1000 * 1000 * 1000
+	updateGraceDeleteTimestampAnnoInterval = 5 * time.Second
 )
-
-func init() {
-	pod.RegisterAdmissionWebhook(New())
-}
 
 type GraceDelete struct {
 }
@@ -93,16 +88,23 @@ func (gd *GraceDelete) Validating(ctx context.Context, c client.Client, oldPod, 
 		if newPod.Labels == nil {
 			newPod.Labels = map[string]string{}
 		}
+		if newPod.Annotations == nil {
+			newPod.Annotations = map[string]string{}
+		}
 
-		// update PodDeletionIndicationLabel every updatePodDeletionIndicationLabelInterval, default 30s
-		if timestamp, ok := newPod.Labels[appsv1alpha1.PodDeletionIndicationLabelKey]; ok {
-			unixNano, err := strconv.ParseInt(timestamp, 10, 64)
-			if err == nil && time.Now().UnixNano()-unixNano < int64(updatePodDeletionIndicationLabelInterval) {
+		// limit the AnnotationGraceDeleteTimestamp update frequency to updateGraceDeleteTimestampAnnoInterval,
+		// to avoid update conflict caused by workload delete pod constantly
+		if timestamp, ok := newPod.Annotations[appsv1alpha1.AnnotationGraceDeleteTimestamp]; ok {
+			lastDeleteTimestamp, err := strconv.ParseInt(timestamp, 10, 64)
+			if err == nil && time.Now().UnixNano()-lastDeleteTimestamp < int64(updateGraceDeleteTimestampAnnoInterval) {
 				return nil
 			}
 		}
 
-		newPod.Labels[appsv1alpha1.PodDeletionIndicationLabelKey] = strconv.FormatInt(time.Now().UnixNano(), 10)
+		if _, ok := newPod.Labels[appsv1alpha1.PodDeletionIndicationLabelKey]; !ok {
+			newPod.Labels[appsv1alpha1.PodDeletionIndicationLabelKey] = strconv.FormatInt(time.Now().UnixNano(), 10)
+		}
+		newPod.Annotations[appsv1alpha1.AnnotationGraceDeleteTimestamp] = strconv.FormatInt(time.Now().UnixNano(), 10)
 
 		return c.Update(ctx, newPod)
 	})
@@ -112,27 +114,17 @@ func (gd *GraceDelete) Validating(ctx context.Context, c client.Client, oldPod, 
 	}
 
 	var finalizers []string
-	var errMsg string
 	for _, f := range oldPod.Finalizers {
 		if strings.HasPrefix(f, v1alpha1.PodOperationProtectionFinalizerPrefix) {
 			finalizers = append(finalizers, f)
-			if strings.Index(f, "app-monitor") != -1 {
-				errMsg = "应用监控目前有用户正在在请求当前服务"
-				break
-			} else if strings.Index(f, "nacos-traffic") != -1 {
-				errMsg = "Nacos服务下线失败"
-				break
-			}
 		}
 	}
 
-	if errMsg != "" {
-		return fmt.Errorf("pod删除失败,%v", errMsg)
-	} else {
-		return nil
+	if len(finalizers) == 0 {
+		return fmt.Errorf("pod deletion process is underway and being managed by PodOpsLifecycle")
 	}
-	//
-	//	return fmt.Errorf("podOpsLifecycle denied delete request, since related resources and finalizers have not been processed. Waiting for removing finalizers: %v", finalizers)
+
+	return fmt.Errorf("pod deletion process is underway and being managed by PodOpsLifecycle with finalizers: %v", finalizers)
 }
 
 func (gd *GraceDelete) Mutating(ctx context.Context, c client.Client, oldPod, newPod *corev1.Pod, operation admissionv1.Operation) error {

@@ -14,24 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resourceconsist
+package webhook
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"kusionstack.io/operating/apis/apps/v1alpha1"
+	server "kusionstack.io/operating/pkg/webhook/server"
 )
 
-func GenerateLifecycleFinalizerKey(employer client.Object) string {
-	return fmt.Sprintf("%s/%s/%s", employer.GetObjectKind().GroupVersionKind().Kind,
-		employer.GetNamespace(), employer.GetName())
-}
-
-func GenerateLifecycleFinalizer(employerName string) string {
-	b := md5.Sum([]byte(employerName))
-	return v1alpha1.PodOperationProtectionFinalizerPrefix + "/" + hex.EncodeToString(b[:])[8:24]
+func init() {
+	// AddToManagerFuncs is a list of functions to create webhook servers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, server.Add)
 }
