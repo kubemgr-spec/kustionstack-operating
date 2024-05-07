@@ -114,17 +114,23 @@ func (gd *GraceDelete) Validating(ctx context.Context, c client.Client, oldPod, 
 	}
 
 	var finalizers []string
+	var msg string
 	for _, f := range oldPod.Finalizers {
 		if strings.HasPrefix(f, v1alpha1.PodOperationProtectionFinalizerPrefix) {
 			finalizers = append(finalizers, f)
+			if strings.Index(f, "app-monitor") != -1 {
+				msg = "检测到当前有用户流量正在请求,请稍后"
+			} else if strings.Index(f, "nacos-traffic") != -1 {
+				msg = "nacos正在下线服务,请稍后"
+			}
 		}
 	}
 
 	if len(finalizers) == 0 {
-		return fmt.Errorf("pod deletion process is underway and being managed by PodOpsLifecycle")
+		return fmt.Errorf("无损组件已启动,Pod删除等待中")
+	} else {
+		return fmt.Errorf("无损组件已启动,Pod删除等待中, %v", msg)
 	}
-
-	return fmt.Errorf("pod deletion process is underway and being managed by PodOpsLifecycle with finalizers: %v", finalizers)
 }
 
 func (gd *GraceDelete) Mutating(ctx context.Context, c client.Client, oldPod, newPod *corev1.Pod, operation admissionv1.Operation) error {
