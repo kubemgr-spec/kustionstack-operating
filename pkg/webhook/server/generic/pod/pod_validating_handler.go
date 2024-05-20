@@ -67,11 +67,16 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) (
 		}
 	}
 
+	var err error
 	for _, webhook := range webhooks {
-		if err := webhook.Validating(ctx, h.Client, oldPod, pod, req.Operation); err != nil {
+		err = webhook.Validating(ctx, h.Client, oldPod, pod, req.Operation)
+		if err != nil {
 			logger.Error(err, "failed to validate pod")
-			return admission.Denied(fmt.Sprintf("failed to validate %s, %v", webhook.Name(), err))
+			break
 		}
+	}
+	if err != nil {
+		return admission.Denied(err.Error())
 	}
 
 	return admission.Allowed("")
