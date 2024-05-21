@@ -72,7 +72,7 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) (
 		err = webhook.Validating(ctx, h.Client, oldPod, pod, req.Operation)
 		if err != nil {
 			logger.Error(err, "Pod验证失败")
-			return admission.Denied("")
+			return admission.Denied(err.Error())
 		}
 	}
 
