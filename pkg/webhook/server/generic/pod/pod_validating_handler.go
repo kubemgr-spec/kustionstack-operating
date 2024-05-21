@@ -71,12 +71,9 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) (
 	for _, webhook := range webhooks {
 		err = webhook.Validating(ctx, h.Client, oldPod, pod, req.Operation)
 		if err != nil {
-			logger.Error(err, "failed to validate pod")
-			break
+			logger.Error(err, "Pod验证失败")
+			return admission.Denied("")
 		}
-	}
-	if err != nil {
-		return admission.Denied(err.Error())
 	}
 
 	return admission.Allowed("")
