@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 
 	admissionv1 "k8s.io/api/admission/v1"
@@ -72,7 +73,15 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) (
 		err = webhook.Validating(ctx, h.Client, oldPod, pod, req.Operation)
 		if err != nil {
 			logger.Error(err, "Pod验证失败")
-			return admission.Denied(err.Error())
+			return admission.Response{
+				AdmissionResponse: admissionv1.AdmissionResponse{
+					Allowed: false,
+					Result: &metav1.Status{
+						Code:    int32(http.StatusForbidden),
+						Message: err.Error(),
+					},
+				},
+			}
 		}
 	}
 
